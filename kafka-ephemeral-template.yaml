@@ -1,0 +1,319 @@
+id: kafka-ephemeral
+kind: Template
+apiVersion: v1
+name: kafka-ephemeral
+metadata:
+  name: kafka-ephemeral
+  labels:
+    category: messaging
+  annotations:
+    description: |
+      This template provides a Kafka cluster using ephemeral storage. 
+      The size of the cluster is provided using template parameters.      
+    tags: kafka,messaging
+    openshift.io/display-name: Kafka cluster (ephemeral)
+    iconClass: fa pficon-topology
+parameters:
+- description: The number of kafka nodes to deploy
+  displayName: Kafka node count
+  name: KAFKA_NODES
+  value: "3"
+  required: true
+- description: The number of zookeeper nodes to deploy
+  displayName: Zookeeper node count
+  name: ZOOKEEPER_NODES
+  value: "5"
+  required: true
+- description: The JVM heap options for Kafka
+  displayName: Kafka JVM heap options 
+  name: KAFKA_HEAP_OPTS
+  value: "-Xmx2G"
+- description: The JVM options for Zookeper
+  displayName: Zookeeper JVM options 
+  name: ZOOKEEPER_SERVER_JVMFLAGS
+  value: "-Xmx512m"
+- description: The password used for the Jolokia endpoint authentication
+  name: JOLOKIA_PASSWORD
+  generate: expression
+  from: '[a-zA-Z0-9]{15}'
+  required: true
+- description: The name of the Kafka cluster. Will be used to annotate cluster with label 'app'
+  displayName: App name for Kafka cluster
+  name: CLUSTER_APP_NAME
+  value: "kafka"
+  required: true
+- description: The name of the OpenShift Service exposed for the Kafka cluster.
+  displayName: Kafka service name
+  name: KAFKA_SERVICE_NAME
+  value: "kafka"
+  required: true
+- description: The name of the OpenShift DNS records service used for the Kafka brokers.
+  displayName: Kafka DNS records service name
+  name: KAFKA_DNS_SERVICE_NAME
+  value: "broker"
+  required: true
+- description: The name of the OpenShift Service exposed for the zookeeper cluster.
+  displayName: Zookeeper service name
+  name: ZOOKEEPER_SERVICE_NAME
+  value: "zookeeper"
+  required: true
+- description: The name of the OpenShift DNS records service exposed for the zookeeper cluster.
+  displayName: Zookeeper DNS records service name
+  name: ZOOKEEPER_DNS_SERVICE_NAME
+  value: "zoo"
+  required: true
+message: |
+  Kafka cluster has been created. It has ${KAFKA_NODES} kafka brokers and ${ZOOKEEPER_NODES} zookepeer nodes.
+  The clients can connect to broker from this project using following service
+
+      ${KAFKA_SERVICE_NAME}:9092
+  
+  The cluster can be deleted using
+
+     oc delete petset -l app=${CLUSTER_APP_NAME}
+     oc delete all -l app=${CLUSTER_APP_NAME}
+     oc delete configmap -l app=${CLUSTER_APP_NAME}
+objects:
+  # Headless service for statefulset
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${ZOOKEEPER_DNS_SERVICE_NAME}
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: zookeeper
+  spec:
+    ports:
+    - port: 2888
+      name: peer
+    - port: 3888
+      name: leader-election
+    clusterIP: None
+    selector:
+      app: ${CLUSTER_APP_NAME}
+      component: zookeeper
+  # the headless service is for statefulset DNS, this one is for clients
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${ZOOKEEPER_SERVICE_NAME}
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: zookeeper
+  spec:
+    ports:
+    - port: 2181
+      name: client
+    selector:
+      app: ${CLUSTER_APP_NAME}
+      component: zookeeper
+  # StatefulSet for zookeeper
+- apiVersion: apps/v1alpha1
+  kind: PetSet
+  metadata:
+    name: zoo
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: zookeeper
+  spec:
+    serviceName: ${ZOOKEEPER_DNS_SERVICE_NAME}
+    replicas: ${ZOOKEEPER_NODES}
+    template:
+      metadata:
+        labels:
+          app: ${CLUSTER_APP_NAME}
+          component: zookeeper
+        annotations:
+          pod.alpha.kubernetes.io/initialized: "true"
+      spec:
+        terminationGracePeriodSeconds: 10
+        containers:
+          - name: zookeeper
+            image: nbogojevic/zookeeper:3.4.9
+            imagePullPolicy: Always
+            env:
+              - name: AB_JOLOKIA_PASSWORD_RANDOM
+                value: "false"
+              - name: AB_JOLOKIA_PASSWORD
+                value: "${JOLOKIA_PASSWORD}"
+              - name: SERVER_JVMFLAGS
+                value: "${ZOOKEEPER_SERVER_JVMFLAGS}"
+              - name: ZOO_SERVER_COUNT
+                value: "${ZOOKEEPER_NODES}"
+            ports:
+              - containerPort: 2181
+                name: client
+              - containerPort: 2888
+                name: peer
+              - containerPort: 3888
+                name: leader-election
+              - containerPort: 8778
+                name: jolokia
+            volumeMounts:
+              - name: datadir
+                mountPath: /data
+        volumes:
+        - name: datadir
+          emptyDir: {}
+        - name: hawkular-openshift-agent
+          configMap:
+            name: zookeeper-metrics-config
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: zookeeper-metrics-config
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: zookeeper
+      role: metrics
+      metrics: hosa 
+  data:
+    hawkular-openshift-agent: |
+      endpoints:
+      - type: jolokia
+        protocol: https
+        port: 8778
+        path: /jolokia/
+        collection_interval: 30s
+        tls:
+          skip_certificate_validation: true
+        credentials:
+          username: jolokia
+          password: ${JOLOKIA_PASSWORD}
+        metrics:
+        - name: java.lang:type=Memory#HeapMemoryUsage#used
+          type: gauge
+          id: jvm.heap.used
+          units: B
+          tags:
+            jvm_metrics: true
+            jvm_heap: true
+# A headless service to create DNS records
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${KAFKA_DNS_SERVICE_NAME}
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: kafka-broker
+  spec:
+    ports:
+    - port: 9092
+    # [podname].broker.kafka.svc.cluster.local
+    clusterIP: None
+    selector:
+      app: ${CLUSTER_APP_NAME}
+      component: kafka-broker
+# Kafka service for cluster
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: ${KAFKA_SERVICE_NAME}
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: kafka-broker
+    annotations:
+      service.alpha.openshift.io/dependencies: '[{"name":"broker","namespace":"","kind":"Service"}, {"name":"zoo","namespace":"","kind":"Service"}, {"name":"zookeeper","namespace":"","kind":"Service"}]'
+  spec:
+    ports:
+    - port: 9092
+    selector:
+      app: ${CLUSTER_APP_NAME}
+      component: kafka-broker
+- apiVersion: apps/v1alpha1
+  kind: PetSet
+  metadata:
+    name: kafka
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: kafka-broker
+  spec:
+    serviceName: ${KAFKA_DNS_SERVICE_NAME}
+    replicas: ${KAFKA_NODES}
+    template:
+      metadata:
+        labels:
+          app: ${CLUSTER_APP_NAME}
+          component: kafka-broker
+        annotations:
+          pod.alpha.kubernetes.io/initialized: "true"
+      spec:
+        terminationGracePeriodSeconds: 10
+        containers:
+        - name: broker
+          image: nbogojevic/kafka:0.10.2.0
+          imagePullPolicy: Always
+          env:
+          - name: AB_JOLOKIA_PASSWORD_RANDOM
+            value: "false"
+          - name: AB_JOLOKIA_PASSWORD
+            value: "${JOLOKIA_PASSWORD}"
+          - name: KAFKA_HEAP_OPTS 
+            value: "${KAFKA_HEAP_OPTS}"
+          ports:
+          - containerPort: 9092
+            name: kafka
+          - containerPort: 8778
+            name: jolokia
+          volumeMounts:
+          - name: datadir
+            mountPath: /opt/kafka/data
+        volumes:
+        - name: datadir
+          emptyDir: {}
+        - name: hawkular-openshift-agent
+          configMap:
+            name: kafka-metrics-confg
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: kafka-metrics-confg
+    labels:
+      app: ${CLUSTER_APP_NAME}
+      component: kafka-broker
+      role: metrics
+      metrics: hosa 
+  data:
+    hawkular-openshift-agent: |
+      endpoints:
+      - type: jolokia
+        protocol: https
+        port: 8778
+        path: /jolokia/
+        collection_interval: 30s
+        tls:
+          skip_certificate_validation: true
+        credentials:
+          username: jolokia
+          password: ${JOLOKIA_PASSWORD}
+        metrics:
+        - name: kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec,topic=*#OneMinuteRate
+          type: gauge
+          id: kafka.${topic}.BytesInPerSec.rate
+          description: ${topic} BytesInPerSec rate (1min)
+          tags:
+            topic_metrics: true
+            byte_rate: true
+            input: true
+        - name: kafka.server:type=BrokerTopicMetrics,name=BytesOutPerSec,topic=*#OneMinuteRate
+          type: gauge
+          id: kafka.${topic}.BytesOutPerSec.rate
+          description: ${topic} BytesOutPerSec rate (1min)
+          tags:
+            topic_metrics: true
+            byte_rate: true
+            output: true
+        - name: kafka.server:type=BrokerTopicMetrics,name=MessagesInPerSec,topic=*#OneMinuteRate
+          type: gauge
+          id: kafka.${topic}.MessageInPerSec.rate
+          description: ${topic} ${name} (1min)
+          tags:
+            topic_metrics: true
+            message_rate: true
+        - name: java.lang:type=Memory#HeapMemoryUsage#used
+          type: gauge
+          id: jvm.heap.used
+          units: B
+          tags:
+            jvm_metrics: true
+            jvm_heap: true

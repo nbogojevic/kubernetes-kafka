@@ -1,0 +1,16 @@
+# Kafka image without the service, so you can run ./bin/ stuff
+# oc exec -ti kafka-client -- /bin/bash
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kafka-client
+  app: kafka
+  component: client
+spec:
+  containers:
+  - name: kafka
+    image: nbogojevic/kafka:latest
+    command:
+      - sh
+      - -c
+      - "exec tail -f /dev/null"
