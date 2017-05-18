@@ -1,6 +1,5 @@
 FROM fabric8/s2i-java
 
-FROM redhat-openjdk-18/openjdk18-openshift
 
 ENV KAFKA_VERSION=0.10.2.0
 ENV SCALA_VERSION=2.12.1
