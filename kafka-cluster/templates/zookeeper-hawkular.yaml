@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zookeeper-{{ .Values.applicationName }}-metrics-config
+  labels:
+    app: {{ .Values.applicationName | quote }}
+    component: zookeeper
+    role: metrics
+    release: {{ .Release.Name | quote }}
+    heritage: {{ .Release.Service | quote }}
+    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+data:
+  hawkular-openshift-agent: |
+    endpoints:
+    - type: jolokia
+      protocol: https
+      port: 8778
+      path: /jolokia/
+      collection_interval: 30s
+      tls:
+        skip_certificate_validation: true
+      credentials:
+        username: jolokia
+        password: {{ .Values.zookeeper.jolokia.password | quote }}
+      metrics:
+      - name: java.lang:type=Memory#HeapMemoryUsage#used
+        type: gauge
+        id: jvm.heap.used
+        units: B
+        tags:
+          jvm_metrics: true
+          jvm_heap: true

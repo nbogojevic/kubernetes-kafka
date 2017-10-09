@@ -1,7 +1,15 @@
 #!/bin/bash
 
 # Command line arguments given to this script
-export KAFKA_OPTS="${KAFKA_OPTS:+${KAFKA_OPTS} }$(/opt/jolokia/jolokia-opts)"
+export KAFKA_OPTS="${KAFKA_OPTS:+${KAFKA_OPTS} }"
+if [ -f agent-bond-opts ]; then
+    export KAFKA_OPTS="${KAFKA_OPTS:+${KAFKA_OPTS} }$(agent-bond-opts)"
+elif [ -f /opt/agentbond/agent-bond-opts ]; then
+    export KAFKA_OPTS="${KAFKA_OPTS:+${KAFKA_OPTS} }$(/opt/agentbond/agent-bond-opts)"
+elif [ -f /opt/jolokia/jolokia-opts ]; then
+    export KAFKA_OPTS="${KAFKA_OPTS:+${KAFKA_OPTS} }$(/opt/jolokia/jolokia-opts)"
+fi
+
 
 if [ ! -z "$KAFKA_ADVERTISED_HOST" ]; then
     echo "advertised host: $KAFKA_ADVERTISED_HOST"

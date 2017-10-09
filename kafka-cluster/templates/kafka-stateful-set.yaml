@@ -1,0 +1,99 @@
+{{- if .Capabilities.APIVersions.Has "apps/v1beta2" }}
+apiVersion: "apps/v1beta2"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1beta1" }}
+apiVersion: "apps/v1beta1"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1alpha1" }}
+apiVersion: "apps/v1alpha1"
+kind: PetSet
+{{- end }}
+metadata:
+  name: {{ .Values.kafka.dnsName | quote }}
+  labels:
+    app: {{ .Values.applicationName | quote }}
+    component: kafka-broker
+    release: {{ .Release.Name | quote }}
+    heritage: {{ .Release.Service | quote }}
+    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  serviceName: {{ .Values.kafka.dnsName | quote }}
+  replicas: {{ .Values.kafka.nodes }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.applicationName | quote }}
+        release: {{ .Release.Name | quote }}
+        component: kafka-broker
+        release: {{ .Release.Name | quote }}
+        heritage: {{ .Release.Service | quote }}
+        chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      annotations:
+      {{- if .Values.kafka.prometheus }}
+        prometheus.io/scrape: true
+        prometheus.io/path: /metrics
+        prometheus.io/port: 9779
+      {{- end }}
+    spec:
+      {{- if .Values.zookeeper.nodeSelector }}
+      nodeSelector: 
+        {{- range $key, $val := .Values.zookeeper.nodeSelector }}
+        {{ $key }}: {{ $val | quote }}
+        {{- end}}
+      {{- end }}
+      terminationGracePeriodSeconds: 10
+      containers:
+      - name: broker
+        image: {{ if .Values.imageRegistry }}{{ .Values.imageRegistry }}/{{ end }}{{ .Values.kafka.image }}:{{ .Values.kafka.tag }}
+        imagePullPolicy: Always
+        env:
+        {{- if .Values.kafka.jolokia }}
+        - name: AB_JOLOKIA_PASSWORD_RANDOM
+          value: "false"
+        - name: AB_JOLOKIA_PASSWORD
+          value: {{ .Values.kafka.jolokia.password | quote }}
+        {{- end }}
+        - name: KAFKA_HEAP_OPTS 
+          value: "{{ .Values.kafka.jvmFlags }}"
+        ports:
+        - containerPort: 9092
+          name: kafka
+        {{- if .Values.kafka.prometheus }}
+        - containerPort: 9779
+          name: prometheus
+        {{- end }}
+        {{- if .Values.kafka.jolokia }}
+        - containerPort: 8778
+          name: jolokia
+        {{- end }}
+        volumeMounts:
+        - name: datadir
+          mountPath: /opt/kafka/data
+      volumes:
+      - name: datadir
+        emptyDir: {}
+      {{- if .Values.kafka.hawkular }}
+      - name: hawkular-openshift-agent
+        configMap:
+          name: kafka-{{ .Values.applicationName }}-metrics-config
+      {{- end }}
+  {{- if .Values.kafka.persistent }}
+  volumeClaimTemplates:
+  - metadata:
+      name: kafka-{{ .Values.applicationName }}-datadir
+      labels:
+        app: {{ .Values.applicationName | quote }}
+        release: {{ .Release.Name | quote }}
+        component: kafka-broker
+        release: {{ .Release.Name | quote }}
+        heritage: {{ .Release.Service | quote }}
+        chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: anything
+    spec:
+      accessModes: 
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.kafka.storageSize | quote }}
+  {{- end }}

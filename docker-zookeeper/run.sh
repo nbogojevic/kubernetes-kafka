@@ -3,7 +3,14 @@
 set -e
 
 # Add jolokia agent support
-export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(/opt/jolokia/jolokia-opts)"
+export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }"
+if [ -f agent-bond-opts ]; then
+    export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(agent-bond-opts)"
+elif [ -f /opt/agentbond/agent-bond-opts ]; then
+    export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(/opt/agentbond/agent-bond-opts)"
+elif [ -f /opt/jolokia/jolokia-opts ]; then
+    export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(/opt/jolokia/jolokia-opts)"
+fi
 
 # Allow the container to be started with `--user`
 if [ "$1" = 'zkServer.sh' -a "$(id -u)" = '0' ]; then

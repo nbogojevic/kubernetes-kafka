@@ -1,0 +1,13 @@
+name: kafka-cluster
+version: 0.1.0
+description: Kafka deplyoment as stateful set
+keywords:
+  - kafka
+  - zookeeper
+home: https://github.com/nbogojevic/kubernetes-kafka
+sources:
+  - https://github.com/nbogojevic/kubernetes-kafka
+maintainers: 
+  - name: Nenad Bogojević
+engine: gotpl # The name of the template engine (optional, defaults to gotpl)
+appVersion: 0.11.0-1

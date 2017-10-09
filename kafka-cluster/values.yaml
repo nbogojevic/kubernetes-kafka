@@ -1,0 +1,33 @@
+#imageRegistry: dockerhub.io
+tag: latest
+pullPolicy: IfNotPresent
+applicationName: kafka-cluster
+
+kafka:
+  image: nbogojevic/kafka
+  tag: latest
+  serviceName: kafka
+  dnsName: broker
+  nodes: 3
+  jvmFlags: -Xmx1G
+  storageSize: 2GiB
+  persistent: false # Set to true to use persistent volumes
+  hawkular: false   # Set to true to enable hawkular metrics
+  nodeSelector:     # Node labels can be specified unde this key
+  jolokia:
+    secured: true
+    password: jolokia
+
+zookeeper:
+  image: nbogojevic/zookeeper
+  tag: latest
+#  tag: 3.4.9
+  serviceName: zookeeper
+  dnsName: zoo
+  nodes: 3 
+  jvmFlags: -Xmx512m
+  hawkular: false   # Set to true to enable hawkular metrics
+  nodeSelector:     # Node labels can be specified unde this key
+  jolokia:
+    secured: true
+    password: jolokia

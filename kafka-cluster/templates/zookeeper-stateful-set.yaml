@@ -1,0 +1,90 @@
+{{- if .Capabilities.APIVersions.Has "apps/v1beta2" }}
+apiVersion: "apps/v1beta2"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1beta1" }}
+apiVersion: "apps/v1beta1"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1alpha1" }}
+apiVersion: "apps/v1alpha1"
+kind: PetSet
+{{- end }}
+metadata:
+  name: {{ .Values.zookeeper.dnsName | quote }}
+  labels:
+    app: {{ .Values.applicationName | quote }}
+    component: zookeeper
+    release: {{ .Release.Name | quote }}
+    heritage: {{ .Release.Service | quote }}
+    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+spec:
+  serviceName: {{ .Values.zookeeper.dnsName | quote }}
+  replicas: {{ .Values.zookeeper.nodes }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.applicationName | quote }}
+        release: {{ .Release.Name | quote }}
+        component: zookeeper
+        release: {{ .Release.Name | quote }}
+        heritage: {{ .Release.Service | quote }}
+        chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+      annotations:
+      {{- if .Values.zookeeper.prometheus }}
+        prometheus.io/scrape: true
+        prometheus.io/path: /metrics
+        prometheus.io/port: 9779
+      {{- end }}
+    spec:
+      {{- if .Values.zookeeper.nodeSelector }}
+      nodeSelector: 
+        {{- range $key, $val := .Values.zookeeper.nodeSelector }}
+        {{ $key }}: {{ $val | quote }}
+        {{- end}}
+      {{- end }}
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: zookeeper
+          image: {{ if .Values.imageRegistry }}{{ .Values.imageRegistry }}/{{ end }}{{ .Values.zookeeper.image }}:{{ .Values.zookeeper.tag }}
+          imagePullPolicy: Always
+          env:
+            {{- if .Values.zookeeper.jolokia }}
+            - name: AB_JOLOKIA_PASSWORD_RANDOM
+              value: "false"
+            - name: AB_JOLOKIA_PASSWORD
+              value: {{ .Values.zookeeper.jolokia.password | quote }}
+            {{- end }}
+            - name: SERVER_JVMFLAGS
+              value: "{{ .Values.zookeeper.jvmFlags }}"
+            - name: ZOO_SERVER_COUNT
+              value: "{{ .Values.zookeeper.nodes }}"
+          ports:
+            - containerPort: 2181
+              name: client
+            - containerPort: 2888
+              name: peer
+            - containerPort: 3888
+              name: leader-election
+            {{- if .Values.zookeeper.prometheus }}
+            - containerPort: 9779
+              name: prometheus
+            {{- end }}
+            {{- if .Values.zookeeper.jolokia }}
+            - containerPort: 8778
+              name: jolokia
+            {{- end }}
+          volumeMounts:
+            - name: datadir
+              mountPath: /data
+            # There are defaults in this folder, such as logging config
+            #- name: conf
+            #  mountPath: /conf
+      volumes:
+        #- name: conf
+        #  emptyDir: {}
+      - name: datadir
+        emptyDir: {}
+      {{- if .Values.zookeeper.hawkular }}
+      - name: hawkular-openshift-agent
+        configMap:
+          name: zookeeper-{{ .Values.applicationName }}-metrics-config
+      {{- end }}
