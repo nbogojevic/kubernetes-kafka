@@ -4,6 +4,7 @@ ENV ZOO_USER=jboss \
     ZOO_CONF_DIR=/conf \
     ZOO_DATA_DIR=/data \
     ZOO_DATA_LOG_DIR=/datalog \
+    ZOO_PORT=2181 \
     ZOO_TICK_TIME=2000 \
     ZOO_INIT_LIMIT=5 \
     ZOO_SYNC_LIMIT=2
@@ -44,6 +45,17 @@ RUN chown -R "$ZOO_USER:root" "/deployments" "/opt/$DISTRO_NAME" \
     && chmod +x /deployments/bin/run.sh \
     && chown "$ZOO_USER:root" "$ZOO_DATA_LOG_DIR" "$ZOO_DATA_DIR" "$ZOO_CONF_DIR" \
     && chmod -R "g+rwX" "$ZOO_DATA_LOG_DIR" "$ZOO_DATA_DIR" "$ZOO_CONF_DIR"
+
+# Install jmx_prometheus_javaagent
+ENV PROMETHEUS_EXPORTER_VERSION=0.10
+
+RUN mkdir -p /opt/jmx_exporter/conf \
+    && curl "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${PROMETHEUS_EXPORTER_VERSION}/jmx_prometheus_javaagent-${PROMETHEUS_EXPORTER_VERSION}.jar" \
+          -o /opt/jmx_exporter/jmx_prometheus_javaagent.jar \
+    && chmod 444 /opt/jmx_exporter/jmx_prometheus_javaagent.jar \
+    && chmod 444 /opt/jmx_exporter/conf
+
+ENV PROMETHEUS_EXPORTER_CONF="-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=9779:/opt/jmx_exporter/conf/jmx_exporter.yaml"
     
 USER $ZOO_USER
 

@@ -3,12 +3,9 @@ kind: ConfigMap
 metadata:
   name: kafka-{{ .Values.applicationName }}-metrics-config
   labels:
-    app: {{ .Values.applicationName | quote }}
     component: kafka-broker
     role: metrics
-    release: {{ .Release.Name | quote }}
-    heritage: {{ .Release.Service | quote }}
-    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    {{- include "standardLabels" . | indent 4 }}
 data:
   hawkular-openshift-agent: |
     endpoints:
@@ -20,8 +17,8 @@ data:
       tls:
         skip_certificate_validation: true
       credentials:
-        username: jolokia
-        password: {{ .Values.kafka.jolokia.password | quote }}
+        username: secret:{{ .Values.applicationName }}-jolokia-sercret/username
+        password: secret:{{ .Values.applicationName }}-jolokia-sercret/password
       metrics:
       - name: kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec,topic=*#OneMinuteRate
         type: gauge

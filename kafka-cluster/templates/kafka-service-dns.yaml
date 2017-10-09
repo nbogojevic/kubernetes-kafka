@@ -3,11 +3,8 @@ kind: Service
 metadata:
   name: {{ .Values.kafka.dnsName }}
   labels:
-    app: {{ .Values.applicationName }}
     component: kafka-broker
-    release: {{ .Release.Name | quote }}
-    heritage: {{ .Release.Service | quote }}
-    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    {{ include "standardLabels" . | indent 4 }}
 spec:
   ports:
   - port: 9092

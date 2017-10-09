@@ -11,23 +11,16 @@ kind: PetSet
 metadata:
   name: {{ .Values.kafka.dnsName | quote }}
   labels:
-    app: {{ .Values.applicationName | quote }}
     component: kafka-broker
-    release: {{ .Release.Name | quote }}
-    heritage: {{ .Release.Service | quote }}
-    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    {{ include "standardLabels" . | indent 4}}
 spec:
   serviceName: {{ .Values.kafka.dnsName | quote }}
   replicas: {{ .Values.kafka.nodes }}
   template:
     metadata:
       labels:
-        app: {{ .Values.applicationName | quote }}
-        release: {{ .Release.Name | quote }}
         component: kafka-broker
-        release: {{ .Release.Name | quote }}
-        heritage: {{ .Release.Service | quote }}
-        chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        {{ include "standardLabels" . | indent 8}}
       annotations:
       {{- if .Values.kafka.prometheus }}
         prometheus.io/scrape: true
@@ -45,24 +38,32 @@ spec:
       containers:
       - name: broker
         image: {{ if .Values.imageRegistry }}{{ .Values.imageRegistry }}/{{ end }}{{ .Values.kafka.image }}:{{ .Values.kafka.tag }}
-        imagePullPolicy: Always
+        imagePullPolicy: {{ .Values.pullPolicy }}
         env:
-        {{- if .Values.kafka.jolokia }}
+        {{- if .Values.jolokia }}
         - name: AB_JOLOKIA_PASSWORD_RANDOM
           value: "false"
+        - name: AB_JOLOKIA_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.applicationName }}-jolokia-secret
+              key: username
         - name: AB_JOLOKIA_PASSWORD
-          value: {{ .Values.kafka.jolokia.password | quote }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.applicationName }}-jolokia-secret
+              key: password
         {{- end }}
         - name: KAFKA_HEAP_OPTS 
           value: "{{ .Values.kafka.jvmFlags }}"
         ports:
         - containerPort: 9092
           name: kafka
-        {{- if .Values.kafka.prometheus }}
+        {{- if .Values.prometheus }}
         - containerPort: 9779
           name: prometheus
         {{- end }}
-        {{- if .Values.kafka.jolokia }}
+        {{- if .Values.jolokia }}
         - containerPort: 8778
           name: jolokia
         {{- end }}
@@ -72,7 +73,7 @@ spec:
       volumes:
       - name: datadir
         emptyDir: {}
-      {{- if .Values.kafka.hawkular }}
+      {{- if .Values.hawkular }}
       - name: hawkular-openshift-agent
         configMap:
           name: kafka-{{ .Values.applicationName }}-metrics-config
@@ -82,12 +83,8 @@ spec:
   - metadata:
       name: kafka-{{ .Values.applicationName }}-datadir
       labels:
-        app: {{ .Values.applicationName | quote }}
-        release: {{ .Release.Name | quote }}
         component: kafka-broker
-        release: {{ .Release.Name | quote }}
-        heritage: {{ .Release.Service | quote }}
-        chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+        {{ include "standardLabels" . | indent 8}}
       annotations:
         volume.alpha.kubernetes.io/storage-class: anything
     spec:

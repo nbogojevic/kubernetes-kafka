@@ -3,12 +3,9 @@ kind: ConfigMap
 metadata:
   name: zookeeper-{{ .Values.applicationName }}-metrics-config
   labels:
-    app: {{ .Values.applicationName | quote }}
     component: zookeeper
     role: metrics
-    release: {{ .Release.Name | quote }}
-    heritage: {{ .Release.Service | quote }}
-    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    {{- include "standardLabels" . | indent 4 }}
 data:
   hawkular-openshift-agent: |
     endpoints:
@@ -20,8 +17,8 @@ data:
       tls:
         skip_certificate_validation: true
       credentials:
-        username: jolokia
-        password: {{ .Values.zookeeper.jolokia.password | quote }}
+        username: secret:{{ .Values.applicationName }}-jolokia-sercret/username
+        password: secret:{{ .Values.applicationName }}-jolokia-sercret/password
       metrics:
       - name: java.lang:type=Memory#HeapMemoryUsage#used
         type: gauge

@@ -3,11 +3,8 @@ kind: Service
 metadata:
   name: {{ .Values.kafka.serviceName }}
   labels:
-    app: {{ .Values.applicationName }}
     component: kafka-broker
-    release: {{ .Release.Name | quote }}
-    heritage: {{ .Release.Service | quote }}
-    chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+    {{ include "standardLabels" . | indent 4 }}
   annotations:
     service.alpha.openshift.io/dependencies: '[{"name":"{{ .Values.kafka.dnsName }}","namespace":"","kind":"Service"}, {"name":"{{ .Values.zookeeper.dnsName }}","namespace":"","kind":"Service"}, {"name":"{{ .Values.zookeeper.serviceName }}","namespace":"","kind":"Service"}]'
 spec:

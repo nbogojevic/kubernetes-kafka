@@ -1,0 +1,6 @@
+{{- define "standardLabels" }}
+app: {{ .Values.applicationName }}
+release: {{ .Release.Name | quote }}
+heritage: {{ .Release.Service | quote }}
+chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
+{{- end }}

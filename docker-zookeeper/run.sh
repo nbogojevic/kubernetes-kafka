@@ -2,8 +2,16 @@
 
 set -e
 
-# Add jolokia agent support
 export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }"
+
+# Use Prometheus exporter if defined
+if [ ! -z "$PROMETHEUS_EXPORTER_CONF" ]; then
+    if [ -f /opt/jmx_exporter/conf/jmx_exporter.yaml ]; then
+        export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }${PROMETHEUS_EXPORTER_CONF}"
+    fi
+fi
+
+# Add jolokia agent support
 if [ -f agent-bond-opts ]; then
     export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(agent-bond-opts)"
 elif [ -f /opt/agentbond/agent-bond-opts ]; then
@@ -22,6 +30,7 @@ fi
 if [ ! -f "$ZOO_CONF_DIR/zoo.cfg" ]; then
     CONFIG="$ZOO_CONF_DIR/zoo.cfg"
 
+    ZOO_PORT="${ZOO_PORT:-2181}"
     echo "clientPort=$ZOO_PORT" >> "$CONFIG"
     echo "dataDir=$ZOO_DATA_DIR" >> "$CONFIG"
     echo "dataLogDir=$ZOO_DATA_LOG_DIR" >> "$CONFIG"
@@ -42,6 +51,7 @@ if [ ! -f "$ZOO_CONF_DIR/zoo.cfg" ]; then
     #        echo "$server" >> "$CONFIG"
     #    done
     #fi
+    cat $CONFIG
 
 fi
 
