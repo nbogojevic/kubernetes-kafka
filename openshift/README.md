@@ -92,7 +92,9 @@ It is possible to customize kafka container to advertise different host and port
 two environmnet variables: KAFKA_ADVERTISED_HOST and KAFKA_ADVERTISED_PORT. When they are specified, the kafka
 containers will use those values to advertise their address instead of default ones. 
 
-# Insired by
+## Hawkular Support
+
+## Inspired by
 
 Original source code is at: https://github.com/Yolean/kubernetes-kafka
 

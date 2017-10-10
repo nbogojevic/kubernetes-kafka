@@ -1,4 +1,9 @@
 #! /bin/bash
 
-docker build docker-kafka -f docker-kafka/Dockerfile.s2i -t nbogojevic/kafka
-docker build docker-zookeeper -f docker-zookeeper/Dockerfile.s2i -t nbogojevic/zookeeper
+minikube start
+
+docker build docker-kafka -t nbogojevic/kafka -f docker-kafka/Dockerfile
+docker build docker-zookeeper -t nbogojevic/zookeeper -f docker-zookeeper/Dockerfile 
+
+helm init
+helm install kafka-cluster

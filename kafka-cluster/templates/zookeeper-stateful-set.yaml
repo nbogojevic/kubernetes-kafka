@@ -25,7 +25,7 @@ spec:
       {{- if .Values.zookeeper.prometheus }}
         prometheus.io/scrape: true
         prometheus.io/path: /metrics
-        prometheus.io/port: 9779
+        prometheus.io/port: 5555
       {{- end }}
     spec:
       {{- if .Values.zookeeper.nodeSelector }}
@@ -66,7 +66,7 @@ spec:
         - containerPort: 3888
           name: leader-election
         {{- if .Values.prometheus }}
-        - containerPort: 9779
+        - containerPort: 5555
           name: prometheus
         {{- end }}
         {{- if .Values.jolokia }}

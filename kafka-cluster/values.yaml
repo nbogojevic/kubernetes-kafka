@@ -1,5 +1,5 @@
 # imageRegistry is the address of the container image registry to use
-# imageRegistry: docker.io
+# imageRegistry: index.docker.io
 
 # pullPolicy is the kubernetes policy to use for pulling images: Always, IfNotPresent, Never
 pullPolicy: IfNotPresent

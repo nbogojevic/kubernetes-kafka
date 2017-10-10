@@ -14,6 +14,12 @@ RUN curl -SLs "http://www.scala-lang.org/files/archive/scala-${SCALA_VERSION}.rp
         && mv /opt/kafka_${KAFKA_BIN_VERSION} /opt/kafka \
         && mkdir -p /deployments/bin
 
+ADD config/server.properties /opt/kafka/config/
+
+WORKDIR /opt/kafka
+
+EXPOSE 9092 8778 5555
+
 ADD run.sh /deployments/bin
 
 # Set directory and file permissions
@@ -30,14 +36,9 @@ RUN mkdir -p /opt/jmx_exporter/conf \
     && chmod 444 /opt/jmx_exporter/jmx_prometheus_javaagent.jar \
     && chmod 444 /opt/jmx_exporter/conf
 
-ENV PROMETHEUS_EXPORTER_CONF="-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=9779:/opt/jmx_exporter/conf/jmx_exporter.yaml"
+ENV PROMETHEUS_EXPORTER_CONF="-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=5555:/opt/jmx_exporter/conf/jmx_exporter.yaml"
+ADD jmx_exporter.yaml /opt/jmx_exporter/conf/
 
 USER jboss
-
-ADD config/server.properties /opt/kafka/config/
-
-WORKDIR /opt/kafka
-
-EXPOSE 9092 8778 9779
 
 CMD [ "/usr/local/s2i/run", "config/server.properties"]

@@ -30,7 +30,7 @@ RUN set -x \
 WORKDIR /opt/$DISTRO_NAME
 VOLUME ["$ZOO_DATA_DIR", "$ZOO_DATA_LOG_DIR", "$ZOO_CONF_DIR"]
 
-EXPOSE 2181 2888 3888 8778 9779
+EXPOSE 2181 2888 3888 8778 5555
 
 ENV PATH=$PATH:/opt/$DISTRO_NAME/bin \
     ZOOCFGDIR=$ZOO_CONF_DIR
@@ -55,7 +55,8 @@ RUN mkdir -p /opt/jmx_exporter/conf \
     && chmod 444 /opt/jmx_exporter/jmx_prometheus_javaagent.jar \
     && chmod 444 /opt/jmx_exporter/conf
 
-ENV PROMETHEUS_EXPORTER_CONF="-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=9779:/opt/jmx_exporter/conf/jmx_exporter.yaml"
+ENV PROMETHEUS_EXPORTER_CONF="-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=5555:/opt/jmx_exporter/conf/jmx_exporter.yaml"
+ADD jmx_exporter.yaml /opt/jmx_exporter/conf/
     
 USER $ZOO_USER
 
