@@ -1,7 +1,8 @@
+{{- if .Values.hawkular }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: kafka-{{ .Values.applicationName }}-metrics-config
+  name: {{ .Values.global.applicationName }}-kafka-hawkular-config
   labels:
     component: kafka-broker
     role: metrics
@@ -17,8 +18,8 @@ data:
       tls:
         skip_certificate_validation: true
       credentials:
-        username: secret:{{ .Values.applicationName }}-jolokia-sercret/username
-        password: secret:{{ .Values.applicationName }}-jolokia-sercret/password
+        username: secret:{{ .Values.global.applicationName }}-jolokia-sercret/username
+        password: secret:{{ .Values.global.applicationName }}-jolokia-sercret/password
       metrics:
       - name: kafka.server:type=BrokerTopicMetrics,name=BytesInPerSec,topic=*#OneMinuteRate
         type: gauge
@@ -50,3 +51,4 @@ data:
         tags:
           jvm_metrics: true
           jvm_heap: true
+{{- end }}

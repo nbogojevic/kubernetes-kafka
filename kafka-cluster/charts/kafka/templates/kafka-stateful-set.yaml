@@ -1,0 +1,138 @@
+{{- if .Capabilities.APIVersions.Has "apps/v1beta2" }}
+apiVersion: "apps/v1beta2"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1beta1" }}
+apiVersion: "apps/v1beta1"
+kind: StatefulSet
+{{- else if .Capabilities.APIVersions.Has "apps/v1alpha1" }}
+apiVersion: "apps/v1alpha1"
+kind: PetSet
+{{- end }}
+metadata:
+  name: {{ .Values.serverName | quote }}
+  labels:
+    component: kafka-broker
+    {{ include "standardLabels" . | indent 4 }}
+spec:
+  selector:
+    matchLabels:
+      component: kafka-broker
+      {{ include "standardLabels" . | indent 6 }}
+  serviceName: {{ .Values.headlessService | quote }}
+  replicas: {{ .Values.nodes }}
+  template:
+    metadata:
+      labels:
+        component: kafka-broker
+        {{ include "standardLabels" . | indent 8 }}
+      annotations:
+      {{- if .Values.global.prometheus }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "9779"
+      {{- end }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values: 
+                    - {{ .Values.global.applicationName }}
+              topologyKey: "kubernetes.io/hostname"
+      {{- if .Values.nodeSelector }}
+      nodeSelector: 
+        {{- range $key, $val := .Values.nodeSelector }}
+        {{ $key }}: {{ $val | quote }}
+        {{- end}}
+      {{- end }}
+      terminationGracePeriodSeconds: 1
+      containers:
+      - name: broker
+        image: {{ if .Values.imageRegistry }}{{ .Values.imageRegistry }}/{{ end }}{{ .Values.image }}:{{ .Values.tag }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        env:
+        {{- if .Values.global.jolokia }}
+        - name: AB_JOLOKIA_PASSWORD_RANDOM
+          value: "false"
+        - name: AB_JOLOKIA_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.global.applicationName }}-jolokia-secret
+              key: username
+        - name: AB_JOLOKIA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.global.applicationName }}-jolokia-secret
+              key: password
+        {{- end }}
+        - name: KAFKA_OPTS
+          value: "{{ .Values.jvmFlags }}{{ if .Values.secured }} -Djava.security.auth.login.config=/opt/kafka/auth/kafka-server-jaas.conf{{ end }}"
+        ports:
+        - containerPort: 9092
+          name: kafka
+        {{- if .Values.global.prometheus }}
+        - containerPort: 9779
+          name: prometheus
+        {{- end }}
+        {{- if .Values.global.jolokia }}
+        - containerPort: 8778
+          name: jolokia
+        {{- end }}
+        livenessProbe:
+          tcpSocket: 
+            port: 9092
+          initialDelaySeconds: 20
+        readinessProbe:
+          tcpSocket: 
+            port: 9092
+          initialDelaySeconds: 10
+        volumeMounts:
+        - name: datadir
+          mountPath: /opt/kafka/data
+        - name: kafka-service-properties
+          mountPath: /opt/mounted/config
+        {{- if .Values.secured }}
+        - name: kafka-auth
+          mountPath: /opt/kafka/auth
+        {{- end }}
+      volumes:
+      - name: datadir
+        {{- if .Values.persistent }}
+        # TODO Volume claim reference here
+        {{- else }}
+        emptyDir: {}
+        {{- end }}
+      - name: kafka-service-properties
+        configMap:
+          name: {{ .Values.global.applicationName }}-kafka-server-properties
+      {{- if .Values.secured }}
+      - name: kafka-auth
+        secret:
+          secretName: {{ .Values.global.applicationName }}-kafka-broker-auth
+      {{- end }}
+      {{- if .Values.global.hawkular }}
+      - name: hawkular-openshift-agent
+        configMap:
+          name: {{ .Values.global.applicationName }}-kafka-hawkular-config
+      {{- end }}
+  {{- if .Values.persistent }}
+  volumeClaimTemplates:
+  - metadata:
+      name: {{ .Values.global.applicationName }}-kafka-datadir
+      labels:
+        component: kafka-broker
+        {{ include "standardLabels" . | indent 8 }}
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: anything
+    spec:
+      accessModes: 
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: {{ .Values.storageSize | quote }}
+  {{- end }}

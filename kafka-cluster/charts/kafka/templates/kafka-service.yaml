@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.serviceName }}
+  labels:
+    component: kafka-broker
+    {{ include "standardLabels" . | indent 4 }}
+# Check if we can enable openshift dependencies
+#  annotations:
+#    service.alpha.openshift.io/dependencies: '[{"name":"{#{ .Values.headlessService }}","namespace":"","kind":"Service"}, {"name":"{#{ .Values.zookeeper.headlessService }}","namespace":"","kind":"Service"}, {"name":"{#{ .Values.zookeeper.serviceName }}","namespace":"","kind":"Service"}]'
+spec:
+  ports:
+  - port: 9092
+  selector:
+    app: {{ .Values.global.applicationName }}
+    component: kafka-broker
+    release: {{ .Release.Name | quote }}

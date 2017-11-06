@@ -1,6 +1,11 @@
 {{- define "standardLabels" }}
-app: {{ .Values.applicationName }}
+app: {{ .Values.global.applicationName }}
 release: {{ .Release.Name | quote }}
 heritage: {{ .Release.Service | quote }}
 chart:  {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 {{- end }}
+
+{{- $adminUser := default (randAlphaNum 16) .Values.kafkaAdminUser -}}
+{{- $adminPassword := default (randAlphaNum 16) .Values.kafkaAdminPassword -}}
+{{- $clientUser := default (randAlphaNum 16) .Values.kafkaClientUser -}}
+{{- $clientPassword := default (randAlphaNum 16) .Values.kafkaClientPassword -}}

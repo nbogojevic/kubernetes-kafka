@@ -1,5 +1,19 @@
 FROM fabric8/s2i-java
 
+USER root
+# Use prometheus 0.1.0
+# Install jmx_prometheus_javaagent
+ENV PROMETHEUS_EXPORTER_VERSION=0.1.0
+
+RUN mkdir -p /opt/prometheus/conf \
+    && curl -SLs "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${PROMETHEUS_EXPORTER_VERSION}/jmx_prometheus_javaagent-${PROMETHEUS_EXPORTER_VERSION}.jar" \
+          -o /opt/prometheus/jmx_prometheus_javaagent.jar \
+    && chmod 444 /opt/prometheus/jmx_prometheus_javaagent.jar \
+    && chmod 444 /opt/prometheus/conf
+
+ENV PROMETHEUS_EXPORTER_CONF="-javaagent:/opt/prometheus/jmx_prometheus_javaagent.jar=5555:/opt/prometheus/conf/prometheus-config.yml"
+ADD prometheus-config.yml /opt/prometheus/conf
+
 ENV ZOO_USER=jboss \
     ZOO_CONF_DIR=/conf \
     ZOO_DATA_DIR=/data \
@@ -9,22 +23,18 @@ ENV ZOO_USER=jboss \
     ZOO_INIT_LIMIT=5 \
     ZOO_SYNC_LIMIT=2
 
-USER root
-
 # Make directories and assign permissions
 RUN mkdir -p "$ZOO_DATA_LOG_DIR" "$ZOO_DATA_DIR" "$ZOO_CONF_DIR" \
     && chown "$ZOO_USER:root" "$ZOO_DATA_LOG_DIR" "$ZOO_DATA_DIR" "$ZOO_CONF_DIR" \
     && chmod -R "g+rwX" "$ZOO_DATA_LOG_DIR" "$ZOO_DATA_DIR" "$ZOO_CONF_DIR"
 
-ARG DISTRO_NAME=zookeeper-3.4.9
+ARG DISTRO_NAME=zookeeper-3.4.11
 
 # Download Apache Zookeeper, untar and clean up
-RUN set -x \
-    && curl -SLsO "http://www.apache.org/dist/zookeeper/$DISTRO_NAME/$DISTRO_NAME.tar.gz" \
+RUN curl -SLsO "http://www.apache.org/dist/zookeeper/$DISTRO_NAME/$DISTRO_NAME.tar.gz" \
     && tar -xzf "$DISTRO_NAME.tar.gz" -C /opt \
     && mv "/opt/$DISTRO_NAME/conf/"* "$ZOO_CONF_DIR" \
     && rm -r "$DISTRO_NAME.tar.gz" \
-	&& yum install -y hostname \
     && mkdir -p /deployments/bin
 
 WORKDIR /opt/$DISTRO_NAME
@@ -46,18 +56,6 @@ RUN chown -R "$ZOO_USER:root" "/deployments" "/opt/$DISTRO_NAME" \
     && chown "$ZOO_USER:root" "$ZOO_DATA_LOG_DIR" "$ZOO_DATA_DIR" "$ZOO_CONF_DIR" \
     && chmod -R "g+rwX" "$ZOO_DATA_LOG_DIR" "$ZOO_DATA_DIR" "$ZOO_CONF_DIR"
 
-# Install jmx_prometheus_javaagent
-ENV PROMETHEUS_EXPORTER_VERSION=0.10
-
-RUN mkdir -p /opt/jmx_exporter/conf \
-    && curl "https://repo1.maven.org/maven2/io/prometheus/jmx/jmx_prometheus_javaagent/${PROMETHEUS_EXPORTER_VERSION}/jmx_prometheus_javaagent-${PROMETHEUS_EXPORTER_VERSION}.jar" \
-          -o /opt/jmx_exporter/jmx_prometheus_javaagent.jar \
-    && chmod 444 /opt/jmx_exporter/jmx_prometheus_javaagent.jar \
-    && chmod 444 /opt/jmx_exporter/conf
-
-ENV PROMETHEUS_EXPORTER_CONF="-javaagent:/opt/jmx_exporter/jmx_prometheus_javaagent.jar=5555:/opt/jmx_exporter/conf/jmx_exporter.yaml"
-ADD jmx_exporter.yaml /opt/jmx_exporter/conf/
-    
 USER $ZOO_USER
 
 CMD ["/usr/local/s2i/run", "zkServer.sh", "start-foreground"]

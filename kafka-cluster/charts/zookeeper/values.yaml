@@ -1,0 +1,14 @@
+## zookeeper.image is the name of zookeeper container image to use
+image: nbogojevic/zookeeper
+## zookeeper.tag is the tag of zookeeper container image to use
+tag: latest
+## zookeeper.serviceName is the service name used by clients to find the cluster
+serviceName: zookeeper
+## zookeeper.headlessService is the name used by StatefulSet to identify instances
+headlessService: zoo
+## zookeeper.nodes is set to number of nodes in zookeeper cluster
+nodes: 3 
+## zookeeper.jvmFlags are default java options to use with kafka
+jvmFlags: -Xmx512m
+## zookeeper.nodeSelector can be set with node labels to use when choosing nodes to deploy
+nodeSelector:     

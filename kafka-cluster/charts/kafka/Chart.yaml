@@ -1,0 +1,4 @@
+apiVersion: v1
+description: Kafka deplyoment as stateful set
+name: kafka
+version: 0.1.0

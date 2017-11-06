@@ -1,0 +1,12 @@
+## applicationName is the default name of the application
+applicationName: kafka-cluster
+#adminUser: admin
+# Then name of the admin password. If not specified a random password is generated.
+#adminPassword: secret-password
+## zookeeperServic the name of zookeper service to use
+zookeeperService: zookeeper
+## zookeperTimeout Default timeout in ms when connecting to zookeeper
+zookeperTimeout: 6000
+## usernamePoolSize number of predefined users for topic access
+usernamePoolSize: 50
+  

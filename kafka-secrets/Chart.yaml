@@ -1,9 +1,8 @@
-name: kafka-cluster
+name: kafka-secrets
 version: 0.2.0
-description: Kafka cluster
+description: Kafka secrets
 keywords:
   - kafka
-  - zookeeper
 home: https://github.com/nbogojevic/kubernetes-kafka
 sources:
   - https://github.com/nbogojevic/kubernetes-kafka

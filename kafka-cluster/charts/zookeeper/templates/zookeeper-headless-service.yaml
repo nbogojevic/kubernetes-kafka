@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.zookeeper.dnsName }}
+  name: {{ .Values.headlessService }}
   labels:
     component: zookeeper
     {{- include "standardLabels" . | indent 4 }}
@@ -13,7 +13,7 @@ spec:
     name: leader-election
   clusterIP: None
   selector:
-    app: {{ .Values.applicationName }}
+    app: {{ .Values.global.applicationName }}
     component: zookeeper
     release: {{ .Release.Name }}
 

@@ -1,0 +1,87 @@
+{{- if .Values.enabled }}
+{{- if .Capabilities.APIVersions.Has "apps/v1beta2" }}
+apiVersion: "apps/v1beta2"
+{{- else if .Capabilities.APIVersions.Has "apps/v1beta1" }}
+apiVersion: "apps/v1beta1"
+{{- end }}
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    component: kafka-operator
+    {{ include "standardLabels" . | indent 4 }}
+  name: {{ .Values.global.applicationName }}-operator
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      component: kafka-operator
+      {{ include "standardLabels" . | indent 6 }}
+  template:
+    metadata:
+      annotations:
+      {{- if .Values.global.prometheus }}
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "9779"
+      {{- end }}
+      labels:
+        component: kafka-operator
+      {{ include "standardLabels" . | indent 8 }}
+    spec:
+      containers:
+      - env:
+        - name: IMPORT_TOPICS
+          value: "{{ .Values.importTopics }}"
+        - name: LOG_LEVEL
+          value: "{{ .Values.logLevel }}"
+        - name: ENABLE_TOPIC_DELETE
+          value: "{{ .Values.deleteTopics }}"
+        - name: BOOTSTRAP_SERVER
+          value: "{{ .Values.bootstrapServer }}"
+        - name: ZOOKEEPER_CONNECT
+          value: "{{ .Values.zookeeperConnect }}"
+        - name: ENABLE_ACL
+          value: "{{ .Values.manageAcl }}"
+        {{- if .Values.global.jolokia }}
+        - name: AB_JOLOKIA_PASSWORD_RANDOM
+          value: "false"
+        - name: AB_JOLOKIA_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.global.applicationName }}-jolokia-secret
+              key: username
+        - name: AB_JOLOKIA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.global.applicationName }}-jolokia-secret
+              key: password
+        {{- end }}
+        - name: JAVA_OPTIONS
+          value: "{{ .Values.jvmFlags }}{{ if .Values.secured }} -Djava.security.auth.login.config=/opt/kafka/auth/kafka-admin-client-jaas.conf{{ end }}"
+        name: {{ .Values.global.applicationName }}-operator
+        ports:
+        {{- if .Values.global.prometheus }}
+        - containerPort: 9779
+          name: prometheus
+        {{- end }}
+        {{- if .Values.global.jolokia }}
+        - containerPort: 8778
+          name: jolokia
+        {{- end }}
+        image: {{ if .Values.imageRegistry }}{{ .Values.imageRegistry }}/{{ end }}{{ .Values.image }}:{{ .Values.tag }}
+        imagePullPolicy: {{ .Values.pullPolicy }}
+        volumeMounts:        
+        {{- if .Values.secured }}
+        - name: kafka-operator-auth
+          mountPath: /opt/kafka/auth
+        {{- end }}
+      serviceAccountName: kafka-operator
+      volumes:
+      {{- if .Values.secured }}
+      - name: kafka-operator-auth
+        secret:
+          secretName: {{ .Values.global.applicationName }}-kafka-admin-client-auth
+      {{- end }}
+{{- end }}

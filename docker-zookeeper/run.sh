@@ -4,21 +4,15 @@ set -e
 
 export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }"
 
-# Use Prometheus exporter if defined
-if [ ! -z "$PROMETHEUS_EXPORTER_CONF" ]; then
-    if [ -f /opt/jmx_exporter/conf/jmx_exporter.yaml ]; then
-        export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }${PROMETHEUS_EXPORTER_CONF}"
-    fi
+# Add jolokia or agent bond
+if [ -f /opt/prometheus/prometheus-opts ]; then
+    export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(/opt/prometheus/prometheus-opts)"
 fi
 
-# Add jolokia agent support
-if [ -f agent-bond-opts ]; then
-    export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(agent-bond-opts)"
-elif [ -f /opt/agentbond/agent-bond-opts ]; then
-    export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(/opt/agentbond/agent-bond-opts)"
-elif [ -f /opt/jolokia/jolokia-opts ]; then
+if [ -f /opt/jolokia/jolokia-opts ]; then
     export SERVER_JVMFLAGS="${SERVER_JVMFLAGS:+${SERVER_JVMFLAGS} }$(/opt/jolokia/jolokia-opts)"
 fi
+
 
 # Allow the container to be started with `--user`
 if [ "$1" = 'zkServer.sh' -a "$(id -u)" = '0' ]; then

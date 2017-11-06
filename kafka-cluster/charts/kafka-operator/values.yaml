@@ -1,0 +1,16 @@
+## enabled is set to true if kafka-operator should be deployed
+enabled: true
+## image is the name of kafka-operator container image to use
+image: nbogojevic/kafka-operator
+## tag is the tag of kafka container image to use
+tag: latest
+## bootstrap is the service name used by discover zookeeper cluster
+bootstrap: kafka:9092
+## logLevel is the log level to set for kafka-operator
+logLevel: INFO
+## deleteTopics is set to true if operator can delete kafka topics
+deleteTopics: true
+## importTopics is set to true if operator should take ownership of all existing kafka topics
+importTopics: true
+## jvmFlags are default java options to use with operator
+jvmFlags: -Xmx128M

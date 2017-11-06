@@ -1,0 +1,36 @@
+## kafka.image is the name of kafka container image to use
+image: nbogojevic/kafka
+## kafka.tag is the tag of kafka container image to use
+tag: latest
+## serviceName is the service name used by clients to find the cluster
+serviceName: kafka
+## headlessService is the name used by StatefulSet to identify instances
+headlessService: broker
+## serverName is the name used by StatefulSet to identify instances
+serverName: kafka
+## kafka.nodes is set to number of nodes in kafka cluster
+nodes: 3
+## kafka.jvmFlags are default java options to use with kafka
+jvmFlags: -Xmx1G
+## kafka.storageSize is the default size of storage when using persistent volumes
+storageSize: 2GiB
+## kafka.persistent is set to true to use persitent volumes
+persistent: false
+## set to true if clients must authenticate. Only supports plaintext SASL mechanism.
+secured: true
+## set to true if communication with kafka should be encrypted. TODO certificate management
+# tls: false
+# Set to true if topics can be deleted.
+deleteTopicEnable: false
+# Then name of the admin user. If not specified a random name is generated.
+#adminUser: admin
+# Then name of the admin password. If not specified a random password is generated.
+#adminPassword: secret-password
+# Then name of the client user. If not specified a random name is generated.
+#clientUser: client
+# Then name of the client password. If not specified a random password is generated.
+#clientPassword: secret-password
+# Default timeout in ms when connecting to zookeeper
+zookeperTimeout: 6000
+## kafka.nodeSelector can be set with node labels to use when choosing nodes to deploy
+nodeSelector:

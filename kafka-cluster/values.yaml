@@ -1,60 +1,109 @@
-# imageRegistry is the address of the container image registry to use
-# imageRegistry: index.docker.io
 
-# pullPolicy is the kubernetes policy to use for pulling images: Always, IfNotPresent, Never
-pullPolicy: IfNotPresent
-# applicationName is the default name of the application
-applicationName: kafka-cluster
 
 kafka:
-  # kafka.image is the name of kafka container image to use
+  ## kafka.imageRegistry is the address of the container image registry to use
+  # imageRegistry: docker.io
+  ## kafka.pullPolicy is the kubernetes policy to use for pulling images: Always, IfNotPresent, Never
+  pullPolicy: IfNotPresent
+  ## kafka.image is the name of kafka container image to use
   image: nbogojevic/kafka
-  # kafka.tag is the tag of kafka container image to use
+  ## kafka.tag is the tag of kafka container image to use
   tag: latest
-  # kafka.serviceName is the service name used by clients to find the cluster
+  ## kafka.serviceName is the service name used by clients to find the cluster
   serviceName: kafka
-  # kafka.dnsName is the name used by StatefulSet to identify instances
-  dnsName: broker
-  # kafka.nodes is set to number of nodes in kafka cluster
+  ## kafka.headlessService is the name of headless service used by StatefulSet 
+  headlessService: broker
+  ## serverName is the name used by StatefulSet to identify instances
+  serverName: kafka
+  ## kafka.nodes is set to number of nodes in kafka cluster
   nodes: 3
-  # kafka.jvmFlags are default java options to use with kafka
-  jvmFlags: -Xmx1G
-  # kafka.storageSize is the default size of storage when using persistent volumes
+  ## kafka.jvmFlags are default java options to use with kafka
+  jvmFlags: -Xmx384G
+  ## kafka.storageSize is the default size of storage when using persistent volumes
   storageSize: 2GiB
-  # kafka.persistent is set to true to use persitent volumes
+  ## kafka.persistent is set to true to use persitent volumes
   persistent: false
-  # kafka.nodeSelector can be set with node labels to use when choosing nodes to deploy
+  ## secured is set to true if clients must authenticate. Only supports plaintext SASL mechanism.
+  secured: true
+  ## set to true if communication with kafka should be encrypted. TODO certificate management
+  # tls: false
+  # Set to true if topics can be deleted.
+  deleteTopicEnable: true
+  # Then name of the admin user. If not specified a random name is generated.
+  #adminUser: admin
+  # Then name of the admin password. If not specified a random password is generated.
+  #adminPassword: secret-password
+  ## zookeeperServic the name of zookeper service to use
+  zookeeperService: zookeeper
+  ## zookeperTimeout Default timeout in ms when connecting to zookeeper
+  zookeperTimeout: 6000
+  ## usernamePoolSize number of predefined users for topic access
+  usernamePoolSize: 50
+  ## kafka.nodeSelector can be set with node labels to use when choosing nodes to deploy
   nodeSelector:
 
 zookeeper:
-  # zookeeper.image is the name of zookeeper container image to use
+  ## zookeeper.imageRegistry is the address of the container image registry to use
+  # imageRegistry: docker.io
+  ## kafka.pullPolicy is the kubernetes policy to use for pulling images: Always, IfNotPresent, Never
+  pullPolicy: IfNotPresent
+  ## zookeeper.image is the name of zookeeper container image to use
   image: nbogojevic/zookeeper
-  # zookeeper.tag is the tag of zookeeper container image to use
+  ## zookeeper.tag is the tag of zookeeper container image to use
   tag: latest
-  # zookeeper.serviceName is the service name used by clients to find the cluster
+  ## zookeeper.serviceName is the service name used by clients to find the cluster
   serviceName: zookeeper
-  # zookeeper.dnsName is the name used by StatefulSet to identify instances
-  dnsName: zoo
-  # zookeeper.nodes is set to number of nodes in zookeeper cluster
+  ## zookeeper.headlessService is the name used by StatefulSet to identify instances
+  headlessService: zoo
+  ## serverName is the name used by StatefulSet to identify instances
+  serverName: zoo
+  ## zookeeper.nodes is set to number of nodes in zookeeper cluster
   nodes: 3 
-  # zookeeper.jvmFlags are default java options to use with kafka
-  jvmFlags: -Xmx512m
-  # zookeeper.nodeSelector can be set with node labels to use when choosing nodes to deploy
-  nodeSelector:     # Node labels can be specified unde this key
+  ## zookeeper.jvmFlags are default java options to use with kafka
+  jvmFlags: -Xmx256m
+  ## zookeeper.nodeSelector can be set with node labels to use when choosing nodes to deploy
+  nodeSelector:     
 
-# hawkular is set to true to enable hawkular metrics
-hawkular: false   
+kafka-operator:
+  ## enabled is set to true if kafka-operator should be deployed
+  enabled: true
+  ## image is the name of kafka-operator container image to use
+  image: nbogojevic/kafka-operator
+  ## pullPolicy is the kubernetes policy to use for pulling images: Always, IfNotPresent, Never
+  pullPolicy: IfNotPresent
+  ## tag is the tag of kafka container image to use
+  tag: latest
+  ## bootstrap is the service name used by discover kafka cluster
+  bootstrapServer: kafka:9092
+  ## logLevel is the log level to set for kafka-operator
+  logLevel: INFO
+  ## deleteTopics is set to true if operator can delete kafka topics
+  deleteTopics: true
+  ## importTopics is set to true if operator should take ownership of all existing kafka topics
+  importTopics: true
+  ## manageAcl is set to true if operator should manage topic ACL
+  manageAcl: true
+  ## secured is set to true if operator must authenticate. Only supports plaintext SASL mechanism.
+  secured: true
+  ## jvmFlags are default java options to use with operator
+  jvmFlags: -Xmx128M
 
-# prometheus is set to true to enable prometheus metrics
-prometheus: false
+global:
+  ## applicationName is the default name of the application
+  applicationName: kafka-cluster
 
+  ## hawkular is set to true to enable hawkular metrics
+  hawkular: false   
 
-# jolokia is set to true if jolokia JMX endpoint should be exposed
-jolokia: true
+  ## prometheus is set to true to enable prometheus metrics
+  prometheus: true
 
-# jolokiaUsername is set to the name of jolokia user for basic authentication
-#jolokiaUsername: jolokia
+  ## jolokia is set to true if jolokia JMX endpoint should be exposed
+  jolokia: true
 
-# jolokiaPassword can be set to the password to use. If not specified, a random password is generated
-#jolokiaPassword: jolokia
+  ## jolokiaUsername is set to the name of jolokia user for basic authentication
+  jolokiaUsername: jolokia
+
+  ## jolokiaPassword can be set to the password to use. If not specified, a random password is generated
+  jolokiaPassword: jolokiapwd
   

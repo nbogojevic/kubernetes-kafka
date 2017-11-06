@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.applicationName }}-kafka-server-properties
+  labels:
+    component: kafka-broker
+    role: server.properties
+    {{- include "standardLabels" . | indent 4 }}
+data:
+  server.properties: |
+    ############################# Server Basics #############################
+
+    # The id of the broker. This must be set to a unique integer for each broker.
+    broker.id=0
+
+    # Use https://github.com/nbogojevic/kafka-operator instead
+    auto.create.topics.enable=false
+
+    # Switch to enable topic deletion or not, default value is flase
+    delete.topic.enable={{ default "false" .Values.deleteTopicEnable}}
+
+    # Rebalance leaders if needed 
+    auto.leader.rebalance.enable=true
+
+    ############################# Log Basics #############################
+
+    # A comma seperated list of directories under which to store log files
+    log.dirs=/opt/kafka/data/topics
+
+    ############################# Zookeeper #############################
+
+    # Zookeeper connection string (see zookeeper docs for details).
+    # This is a comma separated host:port pairs, each corresponding to a zk
+    # server. e.g. "127.0.0.1:3000,127.0.0.1:3001,127.0.0.1:3002".
+    # You can also append an optional chroot string to the urls to specify the
+    # root directory for all kafka znodes.
+    zookeeper.connect={{ .Values.zookeeperService }}:2181
+
+    # Timeout in ms for connecting to zookeeper
+    zookeeper.connection.timeout.ms={{ default 6000 .Values.zookeperTimeout}}
+
+    {{ if .Values.secured }}
+    ############################# Security #############################
+    listeners=SASL_{{ if .Values.tls }}SSL{{ else }}PLAINTEXT{{ end }}://:9092
+    # Security protocol to use between brokers
+    security.inter.broker.protocol=SASL_{{ if .Values.tls }}SSL{{ else }}PLAINTEXT{{ end }}
+    # SASL mechanisms to use between brokers (PLAIN)
+    sasl.mechanism.inter.broker.protocol=PLAIN
+    # What SASL mechanisms are enabled (only PLAIN)
+    sasl.enabled.mechanisms=PLAIN
+    {{ end }}
+
